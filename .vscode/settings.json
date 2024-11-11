@@ -1,0 +1,11 @@
+{
+    "clangd.arguments": [
+        "-log=verbose", 
+        "-pretty",
+        "--clang-tidy",
+        "--background-index",
+        "-header-insertion=never",
+        "-compile-commands-dir=cmake-build-Debug"
+    ],
+    "sonarlint.pathToCompileCommands": "${workspaceFolder}/cmake-build-Debug/compile_commands.json"
+}

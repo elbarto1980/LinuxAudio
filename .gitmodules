@@ -1,0 +1,3 @@
+[submodule "submodules/libvlcpp"]
+	path = submodules/libvlcpp
+	url = https://github.com/videolan/libvlcpp.git
