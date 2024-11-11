@@ -1,6 +1,8 @@
+#include <iostream>
 #include <pulse/pulseaudio.h>
 #include <stdio.h>
-#include <string.h>
+#include <string>
+#include <memory.h>
 
 const int devicesNum{16};
 
@@ -8,9 +10,9 @@ const int devicesNum{16};
 // http://0pointer.de/lennart/projects/pulseaudio/doxygen/structpa__sink__info.html
 using pa_devicelist_t = struct pa_devicelist {
   uint8_t initialized;
-  char name[512];
+  std::string name;
   uint32_t index;
-  char description[256];
+  std::string description;
 };
 
 void pa_state_cb(pa_context *c, void *userdata);
@@ -50,7 +52,7 @@ void pa_state_cb(pa_context *c, void *userdata) {
 // pa_mainloop will call this function when it's ready to tell us about a sink.
 // Since we're not threading, there's no need for mutexes on the devicelist
 // structure
-void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol,
+void pa_sinklist_cb(pa_context *context, const pa_sink_info *sinkInfo, int eol,
                     void *userdata) {
   auto *pa_devicelist = static_cast<pa_devicelist_t *>(userdata);
 
@@ -66,9 +68,9 @@ void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol,
   // allocate space for the device list, but this is a simple example.
   for (int ctr = 0; ctr < devicesNum; ctr++) {
     if (!pa_devicelist[ctr].initialized) {
-      strncpy(pa_devicelist[ctr].name, l->name, 511);
-      strncpy(pa_devicelist[ctr].description, l->description, 255);
-      pa_devicelist[ctr].index = l->index;
+      pa_devicelist[ctr].name = std::string{sinkInfo->name};
+      pa_devicelist[ctr].description = std::string{sinkInfo->description};
+      pa_devicelist[ctr].index = sinkInfo->index;
       pa_devicelist[ctr].initialized = 1;
       break;
     }
@@ -76,8 +78,8 @@ void pa_sinklist_cb(pa_context *c, const pa_sink_info *l, int eol,
 }
 
 // See above.  This callback is pretty much identical to the previous
-void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol,
-                      void *userdata) {
+void pa_sourcelist_cb(pa_context *context, const pa_source_info *sourceInfo,
+                      int eol, void *userdata) {
   auto *pa_devicelist = static_cast<pa_devicelist_t *>(userdata);
 
   if (eol > 0) {
@@ -86,9 +88,9 @@ void pa_sourcelist_cb(pa_context *c, const pa_source_info *l, int eol,
 
   for (int ctr = 0; ctr < devicesNum; ctr++) {
     if (!pa_devicelist[ctr].initialized) {
-      strncpy(pa_devicelist[ctr].name, l->name, 511);
-      strncpy(pa_devicelist[ctr].description, l->description, 255);
-      pa_devicelist[ctr].index = l->index;
+      pa_devicelist[ctr].name = std::string{sourceInfo->name};
+      pa_devicelist[ctr].description = std::string{sourceInfo->description};
+      pa_devicelist[ctr].index = sourceInfo->index;
       pa_devicelist[ctr].initialized = 1;
       break;
     }
@@ -115,16 +117,16 @@ int pa_get_devicelist(pa_devicelist_t *input, pa_devicelist_t *output) {
   pa_mlapi = pa_mainloop_get_api(pa_ml);
   pa_ctx = pa_context_new(pa_mlapi, "test");
 
-  // This function connects to the pulse server
-  pa_context_connect(pa_ctx, nullptr, pa_context_flags_t::PA_CONTEXT_NOFLAGS,
-                     nullptr);
-
-  // This function defines a callback so the server will tell us it's state.
+  // This function defines a callback so the server will tell us its state.
   // Our callback will wait for the state to be ready.  The callback will
   // modify the variable to 1 so we know when we have a connection and it's
   // ready.
   // If there's an error, the callback will set pa_ready to 2
   pa_context_set_state_callback(pa_ctx, pa_state_cb, &pa_ready);
+
+  // This function connects to the pulse server
+  pa_context_connect(pa_ctx, nullptr, pa_context_flags_t::PA_CONTEXT_NOFLAGS,
+                     nullptr);
 
   // Now we'll enter into an infinite loop until we get the data we receive
   // or if there's an error
@@ -142,6 +144,7 @@ int pa_get_devicelist(pa_devicelist_t *input, pa_devicelist_t *output) {
       pa_mainloop_free(pa_ml);
       return -1;
     }
+
     // At this point, we're connected to the server and ready to make
     // requests
     switch (state) {
@@ -195,8 +198,6 @@ int pa_get_devicelist(pa_devicelist_t *input, pa_devicelist_t *output) {
 }
 
 int main(int argc, char *argv[]) {
-  int ctr;
-
   // This is where we'll store the input device list
   pa_devicelist_t pa_input_devicelist[devicesNum];
 
@@ -208,26 +209,27 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  for (ctr = 0; ctr < devicesNum; ctr++) {
+  for (int ctr = 0; ctr < devicesNum; ctr++) {
     if (!pa_output_devicelist[ctr].initialized) {
       break;
     }
-    printf("=======[ Output Device #%d ]=======\n", ctr + 1);
-    printf("Description: %s\n", pa_output_devicelist[ctr].description);
-    printf("Name: %s\n", pa_output_devicelist[ctr].name);
-    printf("Index: %d\n", pa_output_devicelist[ctr].index);
-    printf("\n");
+    std::cout << "=======[ Output Device #" << ctr + 1 << " ]=======" << std::endl;
+    std::cout << "Name:\t\t" << pa_output_devicelist[ctr].name << std::endl;
+    std::cout << "Description:\t" << pa_output_devicelist[ctr].description << std::endl;
+    std::cout << "Index:\t\t" << pa_output_devicelist[ctr].index << std::endl;
+    std::cout << std::endl;
   }
 
-  for (ctr = 0; ctr < devicesNum; ctr++) {
+  for (int ctr = 0; ctr < devicesNum; ctr++) {
     if (!pa_input_devicelist[ctr].initialized) {
       break;
     }
-    printf("=======[ Input Device #%d ]=======\n", ctr + 1);
-    printf("Description: %s\n", pa_input_devicelist[ctr].description);
-    printf("Name: %s\n", pa_input_devicelist[ctr].name);
-    printf("Index: %d\n", pa_input_devicelist[ctr].index);
-    printf("\n");
+    std::cout << "=======[ Input Device #" << ctr + 1 << " ]=======" << std::endl;
+    std::cout << "Name:\t\t" << pa_input_devicelist[ctr].name << std::endl;
+    std::cout << "Description:\t" << pa_input_devicelist[ctr].description << std::endl;
+    std::cout << "Index:\t\t" << pa_input_devicelist[ctr].index << std::endl;
+    std::cout << std::endl;
   }
+
   return 0;
 }
