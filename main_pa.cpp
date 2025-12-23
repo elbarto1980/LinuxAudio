@@ -1,8 +1,8 @@
 #include <iostream>
-#include <memory.h>
 #include <pulse/pulseaudio.h>
 #include <stdio.h>
 #include <string>
+#include <memory.h>
 
 const int devicesNum{16};
 
@@ -117,16 +117,16 @@ int pa_get_devicelist(pa_devicelist_t *input, pa_devicelist_t *output) {
   pa_mlapi = pa_mainloop_get_api(pa_ml);
   pa_ctx = pa_context_new(pa_mlapi, "test");
 
-  // This function connects to the pulse server
-  pa_context_connect(pa_ctx, nullptr, pa_context_flags_t::PA_CONTEXT_NOFLAGS,
-                     nullptr);
-
   // This function defines a callback so the server will tell us its state.
   // Our callback will wait for the state to be ready.  The callback will
   // modify the variable to 1 so we know when we have a connection and it's
   // ready.
   // If there's an error, the callback will set pa_ready to 2
   pa_context_set_state_callback(pa_ctx, pa_state_cb, &pa_ready);
+
+  // This function connects to the pulse server
+  pa_context_connect(pa_ctx, nullptr, pa_context_flags_t::PA_CONTEXT_NOFLAGS,
+                     nullptr);
 
   // Now we'll enter into an infinite loop until we get the data we receive
   // or if there's an error
@@ -213,11 +213,9 @@ int main(int argc, char *argv[]) {
     if (!pa_output_devicelist[ctr].initialized) {
       break;
     }
-    std::cout << "=======[ Output Device #" << ctr + 1
-              << " ]=======" << std::endl;
+    std::cout << "=======[ Output Device #" << ctr + 1 << " ]=======" << std::endl;
     std::cout << "Name:\t\t" << pa_output_devicelist[ctr].name << std::endl;
-    std::cout << "Description:\t" << pa_output_devicelist[ctr].description
-              << std::endl;
+    std::cout << "Description:\t" << pa_output_devicelist[ctr].description << std::endl;
     std::cout << "Index:\t\t" << pa_output_devicelist[ctr].index << std::endl;
     std::cout << std::endl;
   }
@@ -226,11 +224,9 @@ int main(int argc, char *argv[]) {
     if (!pa_input_devicelist[ctr].initialized) {
       break;
     }
-    std::cout << "=======[ Input Device #" << ctr + 1
-              << " ]=======" << std::endl;
+    std::cout << "=======[ Input Device #" << ctr + 1 << " ]=======" << std::endl;
     std::cout << "Name:\t\t" << pa_input_devicelist[ctr].name << std::endl;
-    std::cout << "Description:\t" << pa_input_devicelist[ctr].description
-              << std::endl;
+    std::cout << "Description:\t" << pa_input_devicelist[ctr].description << std::endl;
     std::cout << "Index:\t\t" << pa_input_devicelist[ctr].index << std::endl;
     std::cout << std::endl;
   }
